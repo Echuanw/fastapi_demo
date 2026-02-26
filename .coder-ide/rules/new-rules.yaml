@@ -1,0 +1,6 @@
+name: New rules
+version: 0.0.1
+schema: v1
+rules:
+  - name: Output Chinese
+    rule: 始终以简洁明了的方式输出中文
