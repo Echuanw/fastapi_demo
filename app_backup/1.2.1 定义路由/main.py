@@ -6,7 +6,7 @@ import uvicorn
 # 框架本身，fastapi 对象，用于构建路由
 app = FastAPI()
 
-# 增删改查
+# 增删改查 使用 ApiFox 进行调用
     # @app.put()
     # @app.delete()
     # @app.post()
