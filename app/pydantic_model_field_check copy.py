@@ -27,7 +27,7 @@ async def create_product(product: Product):
         raise HTTPException(status_code=400, detail="Product already exists")
     return {"message": "Product created successfully", "product": product}
 def main():
-    uvicorn.run(app="pydantic_model_check_field:app", host="127.0.0.1", port=8080, reload=True)
+    uvicorn.run(app="pydantic_model_field_check:app", host="127.0.0.1", port=8080, reload=True)
 
 if __name__ == '__main__':
     main()

@@ -11,6 +11,10 @@ class Item(BaseModel):
     price: float
     is_offer: bool = None
 
+    # 如果客户端发送的 JSON 包含其他字段，FastAPI 会返回一个 422 错误
+    class Config:
+        extra = 'forbid'  # 使用字符串字面值代替 Extra.forbid
+
 # 使用模型进行数据验证和解析
 @app.post("/items/")
 async def create_item(item: Item):
