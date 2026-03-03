@@ -1,11 +1,14 @@
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, select, insert, text, update, delete
 from sqlalchemy.orm import declarative_base, Session
 from datetime import datetime
-from configparser import ConfigParser
+from dotenv import load_dotenv
+import os
 
-config = ConfigParser()
-config.read('config/config.ini')
-DATABASE_URL = config.get('postgresql', 'DATABASE_URL')
+# 注册环境变量
+load_dotenv()
+
+# 从配置文件中获取数据库URL
+DATABASE_URL = os.getenv('DATABASE_URL')
 # 创建基类
 Base = declarative_base()
 

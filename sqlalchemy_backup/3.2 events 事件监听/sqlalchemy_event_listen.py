@@ -3,11 +3,14 @@ import logging
 from sqlalchemy import Column, Integer, String, event
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import declarative_base, sessionmaker
-from configparser import ConfigParser
+from dotenv import load_dotenv
+import os
 
-config = ConfigParser()
-config.read('config/config.ini')
-ASYNC_DATABASE_URL = config.get('postgresql', 'ASYNC_DATABASE_URL')
+# 注册环境变量
+load_dotenv()
+
+# 从配置文件中获取数据库URL
+ASYNC_DATABASE_URL = os.getenv('ASYNC_DATABASE_URL')
 
 # 配置日志记录
 logging.basicConfig(level=logging.INFO)

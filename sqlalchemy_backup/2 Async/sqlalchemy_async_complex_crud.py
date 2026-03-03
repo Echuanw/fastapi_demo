@@ -3,11 +3,14 @@ from sqlalchemy import Column, Integer, String, DateTime, Boolean, select, inser
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime
-from configparser import ConfigParser
+from dotenv import load_dotenv
+import os
 
-config = ConfigParser()
-config.read('config/config.ini')
-ASYNC_DATABASE_URL = config.get('postgresql', 'ASYNC_DATABASE_URL')
+# 注册环境变量
+load_dotenv()
+
+# 从配置文件中获取数据库URL
+ASYNC_DATABASE_URL = os.getenv('ASYNC_DATABASE_URL')
 
 # 创建基类
 Base = declarative_base()

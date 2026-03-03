@@ -3,13 +3,16 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, select
 from redis.asyncio import Redis
-from configparser import ConfigParser
+from dotenv import load_dotenv
+import os
 
-config = ConfigParser()
-config.read('config/config.ini')
-ASYNC_DATABASE_URL = config.get('postgresql', 'ASYNC_DATABASE_URL')
-REDIS_URL = config.get('redis', 'REDIS_URL')
-REDIS_PASSWORD = config.get('redis', 'REDIS_PASSWORD')
+# 注册环境变量
+load_dotenv()
+
+# 从配置文件中获取数据库URL
+ASYNC_DATABASE_URL = os.getenv('ASYNC_DATABASE_URL')
+REDIS_PASSWORD = os.getenv('REDIS_PASSWORD')
+REDIS_URL = os.getenv('REDIS_URL')
 
 # 创建基类（SQLAlchemy 2.0 推荐导入路径）
 Base = declarative_base()

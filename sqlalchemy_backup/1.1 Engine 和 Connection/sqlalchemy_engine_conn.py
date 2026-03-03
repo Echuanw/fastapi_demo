@@ -1,10 +1,12 @@
 from sqlalchemy import create_engine, text
-from configparser import ConfigParser
+from dotenv import load_dotenv
+import os
 
-# 读取配置文件
-config = ConfigParser()
-config.read('config/config.ini')
-DATABASE_URL = config.get('postgresql', 'DATABASE_URL')
+# 注册环境变量
+load_dotenv()
+
+# 从配置文件中获取数据库URL
+DATABASE_URL = os.getenv('DATABASE_URL')
 
 # 创建引擎时配置连接池
 engine = create_engine(

@@ -1,6 +1,11 @@
 # Python venv
 .venv/
 .vscode/
-*/__pycache__/
+__pycache__
+
+
+# ENV Parameter 
+.env
+*/config.ini
 
 # Flow Coder

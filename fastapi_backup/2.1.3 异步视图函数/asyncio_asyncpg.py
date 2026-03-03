@@ -4,15 +4,14 @@ from fastapi import FastAPI, HTTPException
 from databases import Database
 import uvicorn
 import asyncpg
+from dotenv import load_dotenv
 import os
 
-
-# 读取配置文件
-config = ConfigParser()
-config.read('config/config.ini')
+# 注册环境变量
+load_dotenv()
 
 # 从配置文件中获取数据库URL
-DATABASE_URL = config.get('postgresql', 'DATABASE_URL')
+DATABASE_URL = os.getenv('DATABASE_URL')
 
 # 创建数据库连接
 database = Database(DATABASE_URL)
