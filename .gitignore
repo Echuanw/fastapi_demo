@@ -1,6 +1,5 @@
 # Python venv
 .venv/
-.vscode/
 __pycache__
 
 

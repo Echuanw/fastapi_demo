@@ -6,13 +6,32 @@ import os
 # 注册环境变量
 load_dotenv()
 
+from app.core.database import create_tables, drop_tables
+from app.api.users import router as users_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """应用生命周期管理"""
+    # 启动时创建数据库表
+    # await drop_tables()        # 测试
+    await create_tables()
+    print("数据库表创建完成")
+    yield
+    # 关闭时的清理工作
+    print("应用关闭")
+
 
 # 创建FastAPI应用实例
 app = FastAPI(
     title="用户管理系统",
     description="基于FastAPI、asyncio SQLAlchemy和PostgreSQL的用户管理系统",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
+
+# 注册路由
+app.include_router(users_router, prefix="/api/v1")
 
 
 @app.get("/")

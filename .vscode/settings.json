@@ -1,0 +1,26 @@
+{
+    // 在文件资源管理器中隐藏指定目录
+    "files.exclude": {
+        "**/node_modules": true,
+        // "**/dist": true,
+        "**/build": true,
+        "**/__pycache__":true  
+    },
+    // 在搜索时忽略指定目录
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/build": true
+    },
+    // 指定哪些目录和文件应被排除在 Python 语言服务器的分析之外
+    "python.analysis.exclude": [
+        "**/node_modules/**",
+        "**/dist/**",
+        "**/build/**",
+        "**/__pycache__/**",
+        "**/.*",
+        ".venv",
+        "zzz_fastapi_backup/**",
+        "zzz_sqlalchemy_backup/**"
+    ]
+}
