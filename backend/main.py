@@ -118,7 +118,7 @@ async def refresh(
     try:
         payload = jwt.decode(refresh_token, auth.settings.JWT_SECRET, algorithms=[auth.settings.JWT_ALGORITHM])
         jti = payload.get("jti")
-        user_id = int(payload.get("sub"))
+        user_id = int(payload.get("sub"))  # noqa: F841
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
