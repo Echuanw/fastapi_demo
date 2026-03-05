@@ -9,16 +9,20 @@ const API_BASE = "http://localhost:8000"; // 后端地址，按需修改
 let accessToken: string | null = null; // 仅内存保存，避免 localStorage 的 XSS 风险
 
 // UI 元素
+const registerPage = document.getElementById("registerPage") as HTMLElement;
 const loginPage = document.getElementById("loginPage") as HTMLElement;
 const homePage = document.getElementById("homePage") as HTMLElement;
 const loadingDiv = document.getElementById("loading") as HTMLElement;
 const welcomeP = document.getElementById("welcome") as HTMLElement;
-const loginForm = document.getElementById("loginForm") as HTMLFormElement;
+
+const registerForm = document.getElementById("registerForm") as HTMLFormElement;      // 前端点击登录，会返回这个对象
+const loginForm = document.getElementById("loginForm") as HTMLFormElement;      // 前端点击登录，会返回这个对象
 const btnInfo = document.getElementById("btnInfo") as HTMLButtonElement;
 const btnLogout = document.getElementById("btnLogout") as HTMLButtonElement;
 
-function showPage(id: "login" | "home" | "loading") {
+function showPage(id: "register" | "login" | "home" | "loading") {
   loginPage.classList.toggle("hidden", id !== "login");
+  registerPage.classList.toggle("hidden", id !== "register");
   homePage.classList.toggle("hidden", id !== "home");
   loadingDiv.classList.toggle("hidden", id !== "loading");
 }
@@ -75,6 +79,37 @@ async function tryRefresh(): Promise<boolean> {
     console.error("refresh failed", err);
     setAccessToken(null);
     return false;
+  }
+}
+
+// 登录流程：POST /api/register 返回 access_token（body），后端会 Set-Cookie refresh_token (httpOnly)
+async function doRegister(e: Event) {
+  e.preventDefault();
+  const username = (document.getElementById("username") as HTMLInputElement).value.trim();
+  const password = (document.getElementById("password") as HTMLInputElement).value;
+  if (!username || !password) return alert("请输入用户名和密码");
+
+  showPage("loading");
+  try {
+    const resp = await fetch(`${API_BASE}/api/register`, {
+      method: "POST",
+      credentials: "include", // 让浏览器接收后端 Set-Cookie（httpOnly）
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password } as LoginRequest),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => null);
+      alert(err?.detail || "登录失败");
+      showPage("login");
+      return;
+    }
+    const data = (await resp.json()) as TokenResponse;
+    setAccessToken(data.access_token);
+    showPage("home");
+  } catch (err) {
+    console.error(err);
+    alert("网络错误");
+    showPage("login");
   }
 }
 
@@ -168,7 +203,8 @@ async function init() {
 }
 
 // 事件绑定
-loginForm.addEventListener("submit", doLogin);
+registerForm.addEventListener("submit", doRegister); 
+loginForm.addEventListener("submit", doLogin);          // loginFrom 登录后，会调用 doLogin 方法
 btnInfo.addEventListener("click", viewUserInfo);
 btnLogout.addEventListener("click", doLogout);
 

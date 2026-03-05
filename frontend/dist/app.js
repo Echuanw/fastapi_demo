@@ -46,7 +46,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-var API_BASE = "http://localhost:8000"; // 后端地址，按需修改
+var API_BASE = "http://localhost:3000"; // 后端地址，按需修改
 var accessToken = null; // 仅内存保存，避免 localStorage 的 XSS 风险
 // UI 元素
 var loginPage = document.getElementById("loginPage");

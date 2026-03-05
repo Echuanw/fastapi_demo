@@ -1,11 +1,15 @@
 from datetime import datetime, timedelta
 
-from database import get_db
-from fastapi import Depends
-from jose import jwt
+from fastapi import Depends, HTTPException, status
+from jose import JWTError, jwt
 from passlib.hash import argon2
 from pydantic_settings import BaseSettings
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.db.database import get_db
+import backend.models as models
+import backend.services.auth as auth
 
 
 class Settings(BaseSettings):
@@ -52,6 +56,36 @@ async def get_current_user(authorization: str | None = None, db: AsyncSession = 
     # to get header: pass parameter as authorization: str = Header(None)
     # For clarity, expect calling as Depends(get_current_user) from routes where header exists.
     raise RuntimeError("请在 main.py 中通过 Depends(get_current_user_from_header) 使用具体实现")
+
+
+# Helper: parse Authorization header and return token string
+def extract_bearer_token(authorization: str | None):
+    if not authorization:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing authorization")
+    if not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authorization header")
+    return authorization.split(" ", 1)[1]
+
+
+# Concrete get_current_user dependency
+async def get_current_user_from_header(authorization: str | None = None, db: AsyncSession = Depends(get_db)):
+    token = extract_bearer_token(authorization)
+    try:
+        payload = jwt.decode(token, auth.settings.JWT_SECRET, algorithms=[auth.settings.JWT_ALGORITHM])
+        user_id = int(payload.get("sub"))
+        token_version = int(payload.get("token_version", 0))
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    # fetch user and compare token_version
+    res = await db.execute(select(models.User).where(models.User.id == user_id))
+    user = res.scalars().first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    if user.token_version != token_version:
+        # token invalidated server-side (forced logout, password change, etc.)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token revoked")
+    return user
 
 
 # We'll provide a concrete implementation below in main.py that uses Authorization header,

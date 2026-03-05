@@ -1,20 +1,15 @@
-from pydantic import BaseModel
+from datetime import datetime
+
+from pydantic import BaseModel, EmailStr, Field
 
 
-class LoginRequest(BaseModel):
-    username: str
-    password: str
+class UserRegisterRequest(BaseModel):
+    email: EmailStr
+    username: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=6, max_length=128)
 
 
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    expires_in: int
-
-
-class UserOut(BaseModel):
+# 响应体
+class UserRegisterResponse(BaseModel):
     id: int
-    username: str
-
-    class Config:
-        orm_mode = True
+    created_at: datetime
