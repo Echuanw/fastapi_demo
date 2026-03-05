@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, String, Boolean, Text, TIMESTAMP, ForeignKey
-from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
 from database import Base
+from sqlalchemy import TIMESTAMP, Boolean, Column, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 
 class User(Base):
     __tablename__ = "users"
@@ -12,6 +13,7 @@ class User(Base):
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+
 
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
