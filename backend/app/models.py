@@ -61,11 +61,11 @@ class RefreshToken(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     user_id = Column(BigInteger, ForeignKey("jwt_demo.users.id", ondelete="CASCADE"), nullable=False)
-    token_hash = Column(String(255), nullable=False)
-    jti = Column(PG_UUID(as_uuid=True), default=uuid.uuid4, nullable=True)
+    token_hash = Column(String(255), nullable=False)  # refresh_token 的哈希值
+    jti = Column(PG_UUID(as_uuid=True), default=uuid.uuid4, nullable=True)  # refresh_token 的 uuid
     expires_at = Column(TIMESTAMP, nullable=False)
     is_revoked = Column(Boolean, nullable=False, default=False)
-    created_ip = Column(String(255), nullable=True)
+    created_ip = Column(String(255), nullable=False)
     user_agent = Column(Text)
     created_at = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
 

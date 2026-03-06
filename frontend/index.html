@@ -1,55 +1,14 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>登录示例 (TS + HTML)</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    .hidden { display: none; }
-    .container { max-width: 420px; margin: 40px auto; }
-    input { width: 100%; padding: 8px; margin: 6px 0; box-sizing: border-box; }
-    button { padding: 8px 12px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div id="registerPage">
-      <h2>注册</h2>
-      <form id="registerForm">
-        <!-- id = registerForm, 点击 登录后，会向后端发送 registerPage 对象 -->
-        <input id="username" type="text" placeholder="用户名" required />
-        <input id="password" type="password" placeholder="密码" required />
-        <div style="margin-top:10px;">
-          <button type="submit">注册</button>
-        </div>
-      </form>
-    </div>
-    
-    <div id="loginPage">
-      <h2>登录</h2>
-      <form id="loginForm">
-        <!-- id = loginForm, 点击 登录后，会向后端发送 loginPage 对象 -->
-        <input id="username" type="text" placeholder="用户名" required />
-        <input id="password" type="password" placeholder="密码" required />
-        <div style="margin-top:10px;">
-          <button type="submit">登录</button>
-        </div>
-      </form>
-    </div>
-
-    <div id="homePage" class="hidden">
-      <h2>主页</h2>
-      <p id="welcome"></p>
-      <button id="btnInfo">查看我的信息</button>
-      <button id="btnLogout" style="margin-left:10px;">登出</button>
-    </div>
-
-    <div id="loading" class="hidden">
-      <p>加载中...</p>
-    </div>
-  </div>
-
-  <script src="dist/app.js"></script>
-</body>
+<html lang="">
+  <head>
+    <meta charset="UTF-8">
+    <title>用户系统示例</title>
+    <link rel="icon" href="/favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vite App</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
 </html>
