@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta, timezone
 import hashlib
 import os
-import secrets
+import secrets    # 生成 refresh_token
 import uuid
 
 from fastapi import Depends, HTTPException, status
@@ -40,7 +40,7 @@ def get_uuid(token: str) -> str:
 
 # create access token
 def create_access_token(user_id: int) -> str:
-    now = datetime.now(timezone.UTC)
+    now = datetime.utcnow()
     payload = {
         "sub": str(user_id),  # 用户ID
         "iat": now,  # 签发时间
@@ -50,21 +50,21 @@ def create_access_token(user_id: int) -> str:
 
 
 # create_refresh_token
-def create_refresh_token(user_id: int, ip: str) -> str:
+def create_refresh_token(user_id: int, ip: str) -> tuple[str, datetime, int]:
     """
     生成 refresh token（opaque string）
     """
     # 生成随机部分
     random_part = secrets.token_urlsafe(32)
-    expires_at = (datetime.now(timezone.UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRES_DAYS),)
+    expires_at = (datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRES_DAYS),)
     # 拼接 secret 信息
     secret = f"{user_id}:{ip}:{str(expires_at)}:{random_part}"
     # 明文 token（客户端存）
     refresh_token = hashlib.sha256(secret.encode()).hexdigest() + random_part
     # 存数据库的 hash（安全）
-    token_hash = get_password_hash(refresh_token.encode()).hexdigest()  # noqa: F841
+    token_hash = get_password_hash(refresh_token.encode()) # noqa: F841
     token_uuid = get_uuid(refresh_token)  # noqa: F841
-    return refresh_token, expires_at
+    return (refresh_token, expires_at, settings.REFRESH_TOKEN_EXPIRES_DAYS,)
 
 
 # verify_access_token
@@ -106,7 +106,7 @@ def extract_bearer_token(authorization: str | None):
 
 
 # Concrete get_current_user dependency
-async def get_current_user_from_header(authorization: str | None = "access_token", db: AsyncSession = Depends(get_db)):
+async def get_current_user_from_header(authorization: str | None = "bearer", db: AsyncSession = Depends(get_db)):
     token = extract_bearer_token(authorization)
     try:
         payload = verify_token(token)

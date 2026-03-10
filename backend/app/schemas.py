@@ -11,7 +11,7 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(BaseModel):
     access_token: str
-    token_type: str = "bearer"
+    token_type: str = "Bearer"
     refresh_token: str | None = None  # 若支持 refresh token 旋转则返回新 token
 
 

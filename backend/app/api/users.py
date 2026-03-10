@@ -1,6 +1,7 @@
 import datetime
+from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Response
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -18,7 +19,7 @@ from app.schemas import (
     UserRegisterRequest,
     UserRegisterResponse,
 )
-from backend.services.token_service import (
+from app.services.token_service import (
     create_access_token,
     create_refresh_token,
     get_current_user_from_header,
@@ -52,8 +53,29 @@ async def get_me(current_user: User = Depends(get_current_user_from_header), ses
     return user
 
 
+@router.get("/all", response_model=List[UserOut])
+async def get_all(session: AsyncSession = Depends(get_db)):
+    # 查询用户及其 profile
+    result = await session.execute(
+        select(User).limit(10)  # noqa: E712
+    )
+    user_list = result.scalars().all()
+    if not user_list:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    return user_list
+
+
 @router.post("/login", response_model=LoginResponse)
-async def login(req: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
+async def login(req: LoginRequest, request: Request, response: Response,  db: AsyncSession = Depends(get_db)):
+    """
+    req      : 传入的参数,包含登录的账号密码等信息
+    request  : 本次 HTTP 请求的所有信息,通过它,可以获取 
+               * 客户端 IP（如 get_client_ip(request)）
+               * 请求头（如 request.headers.get("user-agent")）
+               * 请求的 URL、方法、Cookie、参数等
+    response : 本次 HTTP 响应对象，可以用它设置响应头、Cookie 等
+    db       : 数据库注入的依赖
+    """
     # 查询用户
     result = await db.execute(
         select(User).where(User.username == req.username, User.is_deleted == False)  # noqa: E712
@@ -66,9 +88,9 @@ async def login(req: LoginRequest, request: Request, db: AsyncSession = Depends(
     access_token = create_access_token(user.id)
     # 生成 refresh_token
     host_ip = get_client_ip(request)
-    refresh_token, expires_at = create_refresh_token(user.id, host_ip)
+    refresh_token, expires_at, expires_days = create_refresh_token(user.id, host_ip)
 
-    # 存储 refresh_token 的哈希
+    # 存储 refresh_token 的哈希, 每次登录都会生成 refresh_token. 除非注销或者拉黑
     new_refresh = RefreshToken(
         user_id=user.id,
         token_hash=get_password_hash(refresh_token),
@@ -80,6 +102,20 @@ async def login(req: LoginRequest, request: Request, db: AsyncSession = Depends(
     )
     db.add(new_refresh)
     await db.commit()
+
+    # 设置 refresh_token 到 Cookie，带 HttpOnly
+    # 前端向后端发起请求时，会自动把同域下的 Cookie 带到请求里。
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,                 # 关键点, 前端 JS 代码无法读取、修改或删除这个 Cookie, 防止 XSS 攻击窃取 refresh_token。
+        max_age=expires_days*24*3600,  # 有效期和配置保持一致
+        samesite="lax",                # 跨站策略
+        secure=False                   # 生产环境建议 True（https）
+    )
+
+    # refresh_token 不用传给前端
+    refresh_token = None
 
     return LoginResponse(
         access_token=access_token,
@@ -120,6 +156,7 @@ async def login(req: LoginRequest, request: Request, db: AsyncSession = Depends(
 @router.post("/register", response_model=UserRegisterResponse, status_code=status.HTTP_201_CREATED)
 async def register_user(req: UserRegisterRequest, db: AsyncSession = Depends(get_db)):
     # 检查 email/username 是否唯一
+    print(repr(req))
     result = await db.execute(select(User).where((User.email == req.email) | (User.username == req.username)))
     existing_user = result.scalar_one_or_none()
     if existing_user:
