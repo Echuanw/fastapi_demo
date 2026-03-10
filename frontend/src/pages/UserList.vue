@@ -30,7 +30,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import axios from '../utils/request'
 
 const users = ref([])
@@ -49,5 +49,9 @@ async function fetchUsers() {
     loading.value = false
   }
 }
-await fetchUsers()
+
+onMounted(() => {
+  fetchUsers()
+})
+
 </script>

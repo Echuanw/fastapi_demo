@@ -18,7 +18,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import axios from '../utils/request'
 
 const userMe = ref(null)
@@ -41,6 +41,7 @@ async function getCurrentUser() {
   }
 }
 
-await getCurrentUser()
-
+onMounted(() => {
+  getCurrentUser()
+})
 </script>

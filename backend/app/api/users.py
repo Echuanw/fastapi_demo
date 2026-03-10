@@ -1,7 +1,6 @@
 import datetime
-from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status, Response
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -11,7 +10,6 @@ from app.models import RefreshToken, User
 from app.schemas import (
     LoginRequest,
     LoginResponse,
-    RefreshTokenRequest,
     RefreshTokenResponse,
     RevokeRefreshTokenRequest,
     RevokeRefreshTokenResponse,
@@ -20,6 +18,7 @@ from app.schemas import (
     UserRegisterResponse,
 )
 from app.services.token_service import (
+    check_bearer_token,
     create_access_token,
     create_refresh_token,
     get_current_user_from_header,
@@ -53,8 +52,8 @@ async def get_me(current_user: User = Depends(get_current_user_from_header), ses
     return user
 
 
-@router.get("/all", response_model=List[UserOut])
-async def get_all(session: AsyncSession = Depends(get_db)):
+@router.get("/all", response_model=list[UserOut])
+async def get_all(current_user: User = Depends(check_bearer_token), session: AsyncSession = Depends(get_db)):
     # 查询用户及其 profile
     result = await session.execute(
         select(User).limit(10)  # noqa: E712
@@ -66,7 +65,7 @@ async def get_all(session: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(req: LoginRequest, request: Request, response: Response,  db: AsyncSession = Depends(get_db)):
+async def login(req: LoginRequest, request: Request, response: Response, db: AsyncSession = Depends(get_db)):
     """
     req      : 传入的参数,包含登录的账号密码等信息
     request  : 本次 HTTP 请求的所有信息,通过它,可以获取 
@@ -87,6 +86,7 @@ async def login(req: LoginRequest, request: Request, response: Response,  db: As
     # 生成 access_token
     access_token = create_access_token(user.id)
     # 生成 refresh_token
+    # 这里有 bug， ip 返回的是 localhost ， 后面需要调整
     host_ip = get_client_ip(request)
     refresh_token, expires_at, expires_days = create_refresh_token(user.id, host_ip)
 
@@ -102,16 +102,19 @@ async def login(req: LoginRequest, request: Request, response: Response,  db: As
     )
     db.add(new_refresh)
     await db.commit()
+    await db.refresh(new_refresh)
 
     # 设置 refresh_token 到 Cookie，带 HttpOnly
     # 前端向后端发起请求时，会自动把同域下的 Cookie 带到请求里。
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
-        httponly=True,                 # 关键点, 前端 JS 代码无法读取、修改或删除这个 Cookie, 防止 XSS 攻击窃取 refresh_token。
-        max_age=expires_days*24*3600,  # 有效期和配置保持一致
-        samesite="lax",                # 跨站策略
-        secure=False                   # 生产环境建议 True（https）
+        httponly=True,                     # 关键点, 前端 JS 代码无法读取、修改或删除这个 Cookie, 防止 XSS 攻击窃取 refresh_token。
+        max_age=expires_days * 24 * 3600,  # 有效期和配置保持一致
+        samesite="lax",                    # 跨站策略  开发：lax + False
+        secure=False                       # 环境建议  生产：none + True（https）
+        # 出现一个问题：尝试通过set-cookie标头设置cookie的操作被禁止了，因为此表头具有 samesite=lax 属性但来自一个跨网站响应，而该响应并不是对顶级导航的响应
+        # login 时候拒绝了 set cookie，前端进行代理
     )
 
     # refresh_token 不用传给前端
@@ -181,28 +184,31 @@ async def register_user(req: UserRegisterRequest, db: AsyncSession = Depends(get
 
 # 刷新 access token， 返回 access refresh token
 @router.post("/refresh", response_model=RefreshTokenResponse)
-async def refresh_access_token(req: RefreshTokenRequest, db: AsyncSession = Depends(get_db), request: Request = None):
-    # 从某个地方获取 refresh token
-    token_hash = get_password_hash(req.refresh_token)
-    token_uuid = get_uuid(req.refresh_token)
+async def refresh_access_token(request: Request, db: AsyncSession = Depends(get_db)):
+    # 从 Cookie 获取 refresh token
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Refresh token missing")
+    token_uuid = get_uuid(refresh_token)
     result = await db.execute(
         RefreshToken.__table__.select().where(
-            RefreshToken.token_hash == token_hash,  # refresh hash 值存在
             RefreshToken.jti == token_uuid,
             RefreshToken.is_revoked == False,  # noqa: E712 不在黑名单里
-            RefreshToken.expires_at > datetime.utcnow(),  # token 没过期
+            RefreshToken.expires_at > datetime.datetime.utcnow(),  # token 没过期
         )
     )
+    print(repr(result))
     token_row = result.fetchone()
+    print(token_row)
     # refresh 过期, 需要警告，重新获取 refresh token
     if not token_row:
-        raise HTTPException(status_code=401, detail="Refresh token invalid or expired")
+        raise HTTPException(status_code=400, detail="Refresh token invalid or expired")
 
     # 生成新的 access token
     access_token = create_access_token(token_row.user_id)
-
+    refresh_token = None
     # 返回 access token + refresh token
-    return RefreshTokenResponse(access_token=access_token, refresh_token=req.refresh_token)
+    return RefreshTokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
 # 撤销 revoke_refresh （登出/黑名单）

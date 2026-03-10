@@ -2,16 +2,16 @@ import { defineStore } from 'pinia'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
-    token_type: '',
+    tokenType: '',
     accessToken: ''
   }),
   actions: {
-    setAccessToken(token_type:string, token:string) {
-      this.token_type = token_type
+    setAccessToken(tokenType:string, token:string) {
+      this.tokenType = tokenType
       this.accessToken = token
     },
     clearAccessToken() {
-      this.token_type = ''
+      this.tokenType = ''
       this.accessToken = ''
     }
   }

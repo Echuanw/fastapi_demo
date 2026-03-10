@@ -1,11 +1,11 @@
 # 专门处理 token 生成、校验、刷新等
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 import hashlib
 import os
-import secrets    # 生成 refresh_token
+import secrets  # 生成 refresh_token
 import uuid
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from jose import JWTError, jwt
 from passlib.hash import argon2
 from pydantic_settings import BaseSettings
@@ -56,13 +56,13 @@ def create_refresh_token(user_id: int, ip: str) -> tuple[str, datetime, int]:
     """
     # 生成随机部分
     random_part = secrets.token_urlsafe(32)
-    expires_at = (datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRES_DAYS),)
+    expires_at = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRES_DAYS)
     # 拼接 secret 信息
     secret = f"{user_id}:{ip}:{str(expires_at)}:{random_part}"
     # 明文 token（客户端存）
     refresh_token = hashlib.sha256(secret.encode()).hexdigest() + random_part
     # 存数据库的 hash（安全）
-    token_hash = get_password_hash(refresh_token.encode()) # noqa: F841
+    token_hash = get_password_hash(refresh_token.encode())  # noqa: F841
     token_uuid = get_uuid(refresh_token)  # noqa: F841
     return (refresh_token, expires_at, settings.REFRESH_TOKEN_EXPIRES_DAYS,)
 
@@ -106,13 +106,19 @@ def extract_bearer_token(authorization: str | None):
 
 
 # Concrete get_current_user dependency
-async def get_current_user_from_header(authorization: str | None = "bearer", db: AsyncSession = Depends(get_db)):
+async def check_bearer_token(authorization: str = Header(...)):
     token = extract_bearer_token(authorization)
     try:
         payload = verify_token(token)
         user_id = int(payload.get("sub"))
-    except JWTError:
+    except (JWTError, AttributeError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    return user_id
+
+
+# Concrete get_current_user dependency
+async def get_current_user_from_header(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    user_id = await check_bearer_token(authorization)
 
     # fetch user and compare token_version
     res = await db.execute(select(models.User).where(models.User.id == user_id))
