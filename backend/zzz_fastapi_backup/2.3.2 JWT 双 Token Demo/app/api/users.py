@@ -199,13 +199,10 @@ async def refresh_access_token(request: Request, db: AsyncSession = Depends(get_
     result = await db.execute(stmt)
     token_row = result.scalar_one()
 
-    print(token_row)
     # refresh 过期, 需要警告，重新获取 refresh token
     if not token_row:
         raise HTTPException(status_code=400, detail="Refresh token invalid or expired")
 
-
-    print(token_row.user_id)
     # 生成新的 access token
     access_token = create_access_token(token_row.user_id)
     refresh_token = None
@@ -214,6 +211,7 @@ async def refresh_access_token(request: Request, db: AsyncSession = Depends(get_
 
 
 # 撤销 revoke_refresh （登出/黑名单）
+# 这个没用到
 @router.post("/revoke_refresh", response_model=RevokeRefreshTokenResponse)
 async def revoke_refresh_token(req: RevokeRefreshTokenRequest, db: AsyncSession = Depends(get_db)):
     token_uuid = get_uuid(req.refresh_token)
