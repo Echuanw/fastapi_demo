@@ -20,7 +20,8 @@
         "**/__pycache__/**",
         "**/.*",
         ".venv",
-        "zzz_fastapi_backup/**",
+        "zzz_fastapi_test_backup/**",
+        "zzz_fastapi_basic_backup/**",
         "zzz_sqlalchemy_backup/**"
     ]
 }
